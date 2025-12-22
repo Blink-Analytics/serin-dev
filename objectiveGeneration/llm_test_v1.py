@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+from pathlib import Path
 import json
 import google.generativeai as genai
 from google.api_core.exceptions import GoogleAPIError
@@ -52,7 +53,7 @@ Return valid JSON only. The structure must be exactly as follows:
 """
 
 # --- 2. GEMINI API CALL FUNCTION ---
-def get_objectives_from_gemini(api_key, jd_text):
+def get_objectives_from_gemini(api_key, prompt):
     # Configure the API
     genai.configure(api_key=api_key)
     
@@ -64,7 +65,6 @@ def get_objectives_from_gemini(api_key, jd_text):
         )
         
         # Generate content
-        prompt = construct_prompt(jd_text)
         response = model.generate_content(prompt)
         
         return response.text
@@ -77,7 +77,6 @@ def get_objectives_from_gemini(api_key, jd_text):
         return None
 
 # --- 3. STREAMLIT UI ---
-
 st.title("🎯 Interview Objective Extractor")
 st.caption("Powered by Google Gemini")
 
@@ -86,10 +85,27 @@ This tool extracts structured **Interview Objectives** from any Job Description.
 It assigns a **Difficulty Score** (based on role seniority) and an **Importance Score** (based on keyword criticality).
 """)
 
+def load_env_file():
+    for base_dir in (Path.cwd(), Path(__file__).resolve().parent):
+        for env_filename in (".env", ".ENV"):
+            env_path = base_dir / env_filename
+            if env_path.exists() and env_path.is_file():
+                for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+                    line = raw_line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and key not in os.environ:
+                        os.environ[key] = value
+                return
+
 # Sidebar for API Key
 with st.sidebar:
     st.header("Settings")
-    api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    load_env_file()
+    api_key = os.environ.get("GEMINI_API_KEY")
     if api_key:
         st.text_input("Google Gemini API Key", type="password", value="********", disabled=True)
         st.caption("Using GEMINI_API_KEY from Streamlit secrets or environment.")
@@ -102,9 +118,18 @@ with st.sidebar:
 # Main Input Area
 jd_input = st.text_area("Paste Job Description Here:", height=300, placeholder="Paste the full job description text here...")
 
+custom_prompt_input = st.text_area(
+    "Optional: Enter a custom prompt (leave blank to use default)",
+    height=220,
+    placeholder="Leave empty to use the built-in prompt..."
+)
+
 # Session State to hold data
 if 'df_result' not in st.session_state:
     st.session_state['df_result'] = None
+
+if 'prompt_used' not in st.session_state:
+    st.session_state['prompt_used'] = None
 
 # Button to Generate
 if st.button("Generate Interview Objectives", type="primary"):
@@ -114,8 +139,14 @@ if st.button("Generate Interview Objectives", type="primary"):
         st.warning("Please paste a Job Description.")
     else:
         with st.spinner("Analyzing JD with Gemini..."):
+            prompt_used = custom_prompt_input.strip() if custom_prompt_input else ""
+            if not prompt_used:
+                prompt_used = construct_prompt(jd_input)
+
+            st.session_state['prompt_used'] = prompt_used
+
             # Call LLM
-            json_response = get_objectives_from_gemini(api_key, jd_input)
+            json_response = get_objectives_from_gemini(api_key, prompt_used)
             
             if json_response:
                 try:
@@ -139,6 +170,7 @@ if st.button("Generate Interview Objectives", type="primary"):
 
 if st.session_state['df_result'] is not None:
     df = st.session_state['df_result']
+    prompt_used = st.session_state.get('prompt_used')
     
     st.divider()
     st.subheader("📋 Extraction Results")
@@ -162,9 +194,17 @@ if st.session_state['df_result'] is not None:
         use_container_width=True,
         hide_index=True
     )
+
+    if prompt_used:
+        with st.expander("Prompt used for this result"):
+            st.code(prompt_used)
     
     # CSV Download Logic
-    csv = df.to_csv(index=False).encode('utf-8')
+    csv_text = df.to_csv(index=False)
+    if prompt_used:
+        safe_prompt = prompt_used.replace('"', '""')
+        csv_text += "\n\nmeta_key,meta_value\nPROMPT_USED,\"" + safe_prompt + "\"\n"
+    csv = csv_text.encode('utf-8')
     
     st.download_button(
         label="📥 Download Results as CSV",
