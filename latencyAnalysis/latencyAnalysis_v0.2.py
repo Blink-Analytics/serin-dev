@@ -12,7 +12,7 @@ load_dotenv()
 
 # Page configuration
 st.set_page_config(
-    page_title="Interview Latency Analytics",
+    page_title="Interview Latency Analytics_v0.2",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
