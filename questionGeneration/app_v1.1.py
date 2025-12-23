@@ -137,11 +137,9 @@ def _compute_time_caps(objectives: list[dict], total_time: int) -> dict:
 
 
 def _ensure_gemini_ready() -> tuple[bool, str]:
-    if load_dotenv is not None:
-        load_dotenv(override=False)
-    api_key = (st.session_state.get("gemini_api_key") or "").strip() or os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = (st.session_state.get("gemini_api_key") or "").strip()
     if not api_key:
-        return False, "Missing GEMINI_API_KEY. Add it to .env or environment variables."
+        return False, "No Gemini API key found. Enter a key in the UI."
     if genai is None:
         return False, "Gemini SDK not available. Install google-generativeai."
     try:
