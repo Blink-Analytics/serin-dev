@@ -12,7 +12,7 @@ load_dotenv()
 
 # Page configuration
 st.set_page_config(
-    page_title="Interview Latency Analytics",
+    page_title="Interview Latency Analytics_v0.2",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -582,173 +582,176 @@ def main():
             return
         
         # Create tabs for better organization
-        tab1, tab2 = st.tabs(["📊 Performance Overview", "🔍 Deep Dive & Errors"])
+        tab1, tab2, tab3 = st.tabs(["📊 Performance Overview", "🔍 Session Deep Dive", "❌ Error Analysis"])
         
         with tab1:
             # =================================================================
-            # LEVEL 1: EXECUTIVE SUMMARY (Simplest - Quick Overview)
+            # PERFORMANCE OVERVIEW TAB
+            # Focus: High-level metrics, time distribution, and trends
             # =================================================================
-            st.header("Overview")
+            st.header("Performance Overview")
+            st.caption("High-level metrics and performance insights")
             
             # Key Metrics Row
             col1, col2, col3, col4, col5 = st.columns(5)
         
-        with col1:
-            total_time = df['latency_ms'].sum()
-            st.metric(
-                "Total Time",
-                f"{total_time/1000:.1f}s" if total_time > 1000 else f"{total_time:.0f}ms",
-                help="Total latency across all operations"
-            )
+            with col1:
+                total_time = df['latency_ms'].sum()
+                st.metric(
+                    "Total Time",
+                    f"{total_time/1000:.1f}s" if total_time > 1000 else f"{total_time:.0f}ms",
+                    help="Total latency across all operations"
+                )
         
-        with col2:
-            avg_latency = df['latency_ms'].mean()
-            st.metric(
-                "Avg Latency",
-                f"{avg_latency:.1f} ms",
-                help="Average latency per operation"
-            )
+            with col2:
+                avg_latency = df['latency_ms'].mean()
+                st.metric(
+                    "Avg Latency",
+                    f"{avg_latency:.1f} ms",
+                    help="Average latency per operation"
+                )
         
-        with col3:
-            p95_latency = df['latency_ms'].quantile(0.95)
-            st.metric(
-                "P95 Latency",
-                f"{p95_latency:.1f} ms",
-                help="95% of operations complete within this time"
-            )
+            with col3:
+                p95_latency = df['latency_ms'].quantile(0.95)
+                st.metric(
+                    "P95 Latency",
+                    f"{p95_latency:.1f} ms",
+                    help="95% of operations complete within this time"
+                )
         
-        with col4:
-            success_rate = (df['status'] == 'success').mean() * 100
-            delta_color = "normal" if success_rate >= 95 else "inverse"
-            st.metric(
-                "Success Rate",
-                f"{success_rate:.1f}%",
-                delta="Good" if success_rate >= 95 else "Needs attention",
-                delta_color=delta_color,
-                help="Percentage of successful operations"
-            )
+            with col4:
+                success_rate = (df['status'] == 'success').mean() * 100
+                delta_color = "normal" if success_rate >= 95 else "inverse"
+                st.metric(
+                    "Success Rate",
+                    f"{success_rate:.1f}%",
+                    delta="Good" if success_rate >= 95 else "Needs attention",
+                    delta_color=delta_color,
+                    help="Percentage of successful operations"
+                )
         
-        with col5:
-            unique_sessions = df['session_id'].nunique()
-            st.metric(
-                "Sessions",
-                f"{unique_sessions:,}",
-                help="Number of unique interview sessions"
-            )
+            with col5:
+                unique_sessions = df['session_id'].nunique()
+                st.metric(
+                    "Sessions",
+                    f"{unique_sessions:,}",
+                    help="Number of unique interview sessions"
+                )
         
-        # Quick insight
-        slowest_step = df.groupby('step_name')['latency_ms'].mean().idxmax()
-        slowest_avg = df.groupby('step_name')['latency_ms'].mean().max()
-        st.info(f"Slowest step on average: **{slowest_step}** ({slowest_avg:.0f} ms)")
+            # Quick insight
+            slowest_step = df.groupby('step_name')['latency_ms'].mean().idxmax()
+            slowest_avg = df.groupby('step_name')['latency_ms'].mean().max()
+            st.info(f"Slowest step on average: **{slowest_step}** ({slowest_avg:.0f} ms)")
         
-        st.divider()
+            st.divider()
         
-        # =================================================================
-        # LEVEL 2: WHERE IS TIME BEING SPENT? (Simple Analysis)
-        # =================================================================
-        st.header("Time Analysis")
-        st.caption("Understand where time is being spent in your interview process")
+            # =================================================================
+            # TIME ANALYSIS - Where is time being spent?
+            # =================================================================
+            st.subheader("Time Distribution")
+            st.caption("Understand where time is being spent in your interview process")
         
-        col1, col2 = st.columns([3, 2])
+            col1, col2 = st.columns([3, 2])
         
-        with col1:
-            st.plotly_chart(create_step_avg_bar_chart(df), use_container_width=True)
+            with col1:
+                st.plotly_chart(create_step_avg_bar_chart(df), use_container_width=True)
         
-        with col2:
-            st.plotly_chart(create_total_time_breakdown_chart(df), use_container_width=True)
+            with col2:
+                st.plotly_chart(create_total_time_breakdown_chart(df), use_container_width=True)
         
-        # Quick stats table
-        st.subheader("Step Summary")
-        step_summary = df.groupby('step_name').agg({
-            'latency_ms': ['mean', 'count'],
-            'status': lambda x: (x == 'success').mean() * 100
-        }).round(1)
-        step_summary.columns = ['Avg Latency (ms)', 'Call Count', 'Success Rate (%)']
-        step_summary = step_summary.sort_values('Avg Latency (ms)', ascending=False)
-        step_summary['% of Total Time'] = (
-            df.groupby('step_name')['latency_ms'].sum() / df['latency_ms'].sum() * 100
-        ).round(1)
-        st.dataframe(step_summary, use_container_width=True)
+            # Quick stats table
+            st.subheader("Step Performance Summary")
+            step_summary = df.groupby('step_name').agg({
+                'latency_ms': ['mean', 'count'],
+                'status': lambda x: (x == 'success').mean() * 100
+            }).round(1)
+            step_summary.columns = ['Avg Latency (ms)', 'Call Count', 'Success Rate (%)']
+            step_summary = step_summary.sort_values('Avg Latency (ms)', ascending=False)
+            step_summary['% of Total Time'] = (
+                df.groupby('step_name')['latency_ms'].sum() / df['latency_ms'].sum() * 100
+            ).round(1)
+            st.dataframe(step_summary, use_container_width=True)
         
-        st.divider()
+            st.divider()
         
-        # =================================================================
-        # LEVEL 3: PERFORMANCE COMPARISON (Intermediate Analysis)
-        # =================================================================
-        st.header("Performance Comparison")
-        st.caption("Compare different statistical measures across steps")
+            # =================================================================
+            # PERFORMANCE COMPARISON
+            # =================================================================
+            st.subheader("Performance Comparison")
+            st.caption("Compare different statistical measures across steps")
         
-        st.plotly_chart(create_step_comparison_chart(df), use_container_width=True)
+            st.plotly_chart(create_step_comparison_chart(df), use_container_width=True)
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.plotly_chart(create_daily_volume_chart(df), use_container_width=True)
-        with col2:
-            st.plotly_chart(create_error_rate_by_step_chart(df), use_container_width=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.plotly_chart(create_daily_volume_chart(df), use_container_width=True)
+            with col2:
+                st.plotly_chart(create_error_rate_by_step_chart(df), use_container_width=True)
         
-        st.divider()
+            st.divider()
         
-        # =================================================================
-        # LEVEL 4: TRENDS & PATTERNS (Time-based Analysis)
-        # =================================================================
-        st.header("Trends Over Time")
-        st.caption("Track performance changes over time")
+            # =================================================================
+            # TRENDS & PATTERNS
+            # =================================================================
+            st.subheader("Performance Trends")
+            st.caption("Track performance changes over time")
         
-        st.plotly_chart(create_trend_chart(df), use_container_width=True)
+            st.plotly_chart(create_trend_chart(df), use_container_width=True)
         
-        # Heatmap for turn analysis
-        if df['turn_number'].nunique() > 1:
-            st.subheader("Turn Number Analysis")
-            st.caption("How latency changes across conversation turns")
-            st.plotly_chart(create_turn_heatmap(df), use_container_width=True)
+            # Heatmap for turn analysis
+            if df['turn_number'].nunique() > 1:
+                st.subheader("Turn Number Analysis")
+                st.caption("How latency changes across conversation turns")
+                st.plotly_chart(create_turn_heatmap(df), use_container_width=True)
         
-        st.divider()
+            st.divider()
         
-        # =================================================================
-        # LEVEL 5: DISTRIBUTION ANALYSIS (Detailed Analysis)
-        # =================================================================
-        st.header("Distribution Analysis")
-        st.caption("Understand the spread and outliers in your latency data")
+            # =================================================================
+            # DISTRIBUTION ANALYSIS
+            # =================================================================
+            st.subheader("Latency Distribution")
+            st.caption("Understand the spread and outliers in your latency data")
         
-        col1, col2 = st.columns([2, 1])
+            col1, col2 = st.columns([2, 1])
         
-        with col1:
-            st.plotly_chart(create_latency_box_plot(df), use_container_width=True)
+            with col1:
+                st.plotly_chart(create_latency_box_plot(df), use_container_width=True)
         
-        with col2:
-            selected_step_dist = st.selectbox(
-                "Select step for histogram",
-                options=['All Steps'] + list(df['step_name'].unique()),
-                key="dist_step"
-            )
-            if selected_step_dist == 'All Steps':
-                st.plotly_chart(create_latency_distribution_chart(df), use_container_width=True)
-            else:
-                st.plotly_chart(create_latency_distribution_chart(df, selected_step_dist), use_container_width=True)
+            with col2:
+                selected_step_dist = st.selectbox(
+                    "Select step for histogram",
+                    options=['All Steps'] + list(df['step_name'].unique()),
+                    key="dist_step"
+                )
+                if selected_step_dist == 'All Steps':
+                    st.plotly_chart(create_latency_distribution_chart(df), use_container_width=True)
+                else:
+                    st.plotly_chart(create_latency_distribution_chart(df, selected_step_dist), use_container_width=True)
         
-        # Percentile analysis
-        st.plotly_chart(create_percentile_chart(df), use_container_width=True)
+            # Percentile analysis
+            st.plotly_chart(create_percentile_chart(df), use_container_width=True)
         
-        # Detailed statistics table
-        with st.expander("Detailed Statistics Table"):
-            detailed_stats = df.groupby('step_name')['latency_ms'].agg([
-                ('Mean', 'mean'),
-                ('Median', 'median'),
-                ('Std Dev', 'std'),
-                ('Min', 'min'),
-                ('Max', 'max'),
-                ('P50', lambda x: x.quantile(0.5)),
-                ('P75', lambda x: x.quantile(0.75)),
-                ('P90', lambda x: x.quantile(0.9)),
-                ('P95', lambda x: x.quantile(0.95)),
-                ('P99', lambda x: x.quantile(0.99)),
-                ('Count', 'count')
-            ]).round(2)
-            st.dataframe(detailed_stats, use_container_width=True)
+            # Detailed statistics table
+            with st.expander("Detailed Statistics Table"):
+                detailed_stats = df.groupby('step_name')['latency_ms'].agg([
+                    ('Mean', 'mean'),
+                    ('Median', 'median'),
+                    ('Std Dev', 'std'),
+                    ('Min', 'min'),
+                    ('Max', 'max'),
+                    ('P50', lambda x: x.quantile(0.5)),
+                    ('P75', lambda x: x.quantile(0.75)),
+                    ('P90', lambda x: x.quantile(0.9)),
+                    ('P95', lambda x: x.quantile(0.95)),
+                    ('P99', lambda x: x.quantile(0.99)),
+                    ('Count', 'count')
+                ]).round(2)
+                st.dataframe(detailed_stats, use_container_width=True)
         
         with tab2:
             # =================================================================
-            # SESSION DEEP DIVE
+            # SESSION DEEP DIVE TAB
+            # Focus: Individual session analysis and comparison
             # =================================================================
             st.header("Session Deep Dive")
             st.caption("Analyze individual interview sessions in detail")
@@ -787,15 +790,20 @@ def main():
                     errors = (session_df['status'] == 'error').sum()
                     st.metric("Errors", errors, delta="None" if errors == 0 else None, delta_color="normal")
                 
+                st.divider()
+                
                 # Session visualizations
+                st.subheader("Session Timeline")
                 col1, col2 = st.columns(2)
                 with col1:
                     st.plotly_chart(create_session_timeline_chart(df, selected_session), use_container_width=True)
                 with col2:
                     st.plotly_chart(create_session_waterfall_chart(df, selected_session), use_container_width=True)
                 
+                st.divider()
+                
                 # Session details table
-                st.subheader("Session Steps")
+                st.subheader("Session Step Details")
                 session_display = session_df[['turn_number', 'step_name', 'latency_ms', 'status', 'started_at', 'error_message']].copy()
                 session_display = session_display.sort_values('started_at')
                 session_display['latency_ms'] = session_display['latency_ms'].round(1)
@@ -804,58 +812,52 @@ def main():
             st.divider()
             
             # =================================================================
-            # ERROR ANALYSIS
+            # SESSION COMPARISON
             # =================================================================
-            st.header("Error Analysis")
-            st.caption("Identify and investigate failures")
+            st.subheader("Session Comparison")
+            st.caption("Compare sessions to identify patterns")
             
-            error_df = df[df['status'] == 'error']
+            # Show top slowest and fastest sessions
+            col1, col2 = st.columns(2)
             
-            col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Total Errors", len(error_df))
-            with col2:
-                error_rate = len(error_df) / len(df) * 100
-                st.metric("Error Rate", f"{error_rate:.2f}%")
-            with col3:
-                if not error_df.empty:
-                    most_errors = error_df['step_name'].value_counts().idxmax()
-                    st.metric("Most Failing Step", most_errors)
-                else:
-                    st.metric("Most Failing Step", "None")
+                st.markdown("**Slowest Sessions**")
+                slowest = sessions.nlargest(5, 'total_latency')[['session_id', 'started', 'total_latency', 'success_rate']]
+                slowest['session_id'] = slowest['session_id'].str[:12]
+                slowest['total_latency'] = slowest['total_latency'].round(0).astype(int)
+                slowest.columns = ['Session', 'Started', 'Total (ms)', 'Success %']
+                st.dataframe(slowest, use_container_width=True, hide_index=True)
             
-            if not error_df.empty:
-                # Error breakdown
-                error_counts = error_df.groupby(['step_name', 'error_message']).size().reset_index(name='count')
-                error_counts = error_counts.sort_values('count', ascending=False)
-                
-                st.subheader("Error Details")
-                st.dataframe(error_counts, use_container_width=True, hide_index=True)
-                
-                # Error timeline
-                error_df_copy = error_df.copy()
-                error_df_copy['date'] = error_df_copy['created_at'].dt.date
-                error_by_date = error_df_copy.groupby(['date', 'step_name']).size().reset_index(name='count')
-                
-                fig = px.bar(
-                    error_by_date,
-                    x='date',
-                    y='count',
-                    color='step_name',
-                    title="Errors Over Time",
-                    labels={'count': 'Error Count', 'date': 'Date'}
-                )
-                fig.update_layout(height=350)
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.success("No errors found in the selected date range!")
+            with col2:
+                st.markdown("**Fastest Sessions**")
+                fastest = sessions.nsmallest(5, 'total_latency')[['session_id', 'started', 'total_latency', 'success_rate']]
+                fastest['session_id'] = fastest['session_id'].str[:12]
+                fastest['total_latency'] = fastest['total_latency'].round(0).astype(int)
+                fastest.columns = ['Session', 'Started', 'Total (ms)', 'Success %']
+                st.dataframe(fastest, use_container_width=True, hide_index=True)
+            
+            # Session latency distribution
+            st.subheader("Session Latency Distribution")
+            session_totals = df.groupby('session_id')['latency_ms'].sum().reset_index()
+            session_totals.columns = ['session_id', 'total_latency']
+            
+            fig = px.histogram(
+                session_totals,
+                x='total_latency',
+                nbins=30,
+                title="Distribution of Total Session Latency",
+                labels={'total_latency': 'Total Latency (ms)', 'count': 'Number of Sessions'}
+            )
+            fig.update_traces(marker_color='#007bff')
+            fig.update_layout(height=350, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
             
             st.divider()
             
             # =================================================================
             # RAW DATA EXPLORER
             # =================================================================
-            with st.expander("Raw Data Explorer"):
+            with st.expander("📥 Raw Data Explorer & Export"):
                 st.caption("Filter and export raw data for custom analysis")
                 
                 # Filters
@@ -913,6 +915,286 @@ def main():
                         file_name=f"latency_metrics_all_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                         mime="text/csv"
                     )
+        
+        with tab3:
+            # =================================================================
+            # ERROR ANALYSIS TAB
+            # Focus: Error tracking, debugging, and root cause analysis
+            # =================================================================
+            st.header("Error Analysis")
+            st.caption("Identify, investigate, and troubleshoot failures")
+            
+            error_df = df[df['status'] == 'error']
+            
+            # Error Metrics Overview
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Errors", f"{len(error_df):,}")
+            with col2:
+                error_rate = len(error_df) / len(df) * 100
+                delta_color = "normal" if error_rate < 5 else "inverse"
+                st.metric("Error Rate", f"{error_rate:.2f}%", delta_color=delta_color)
+            with col3:
+                if not error_df.empty:
+                    most_errors = error_df['step_name'].value_counts().idxmax()
+                    st.metric("Most Failing Step", most_errors)
+                else:
+                    st.metric("Most Failing Step", "None")
+            with col4:
+                if not error_df.empty:
+                    failed_sessions = error_df['session_id'].nunique()
+                    st.metric("Sessions with Errors", f"{failed_sessions:,}")
+                else:
+                    st.metric("Sessions with Errors", "0")
+            
+            st.divider()
+            
+            if not error_df.empty:
+                # =================================================================
+                # ERROR BREAKDOWN BY STEP AND MESSAGE
+                # =================================================================
+                st.subheader("Error Breakdown")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**Errors by Step**")
+                    error_by_step = error_df['step_name'].value_counts().reset_index()
+                    error_by_step.columns = ['Step', 'Error Count']
+                    fig = px.bar(
+                        error_by_step,
+                        x='Step',
+                        y='Error Count',
+                        title="Error Count by Step",
+                        color='Error Count',
+                        color_continuous_scale='Reds'
+                    )
+                    fig.update_layout(height=350, xaxis_tickangle=-45, showlegend=False)
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    st.markdown("**Error Rate by Step**")
+                    error_rate_by_step = df.groupby('step_name').apply(
+                        lambda x: (x['status'] == 'error').mean() * 100
+                    ).sort_values(ascending=False).reset_index()
+                    error_rate_by_step.columns = ['Step', 'Error Rate (%)']
+                    fig = px.bar(
+                        error_rate_by_step,
+                        x='Step',
+                        y='Error Rate (%)',
+                        title="Error Rate by Step",
+                        color='Error Rate (%)',
+                        color_continuous_scale='Reds'
+                    )
+                    fig.update_layout(height=350, xaxis_tickangle=-45, showlegend=False)
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                st.divider()
+                
+                # =================================================================
+                # ERROR MESSAGES AND PATTERNS
+                # =================================================================
+                st.subheader("Error Messages")
+                st.caption("Detailed error message breakdown")
+                
+                # Group errors by step and message
+                error_details = error_df.groupby(['step_name', 'error_message']).agg({
+                    'metric_id': 'count',
+                    'session_id': 'nunique',
+                    'latency_ms': 'mean'
+                }).reset_index()
+                error_details.columns = ['Step', 'Error Message', 'Occurrences', 'Affected Sessions', 'Avg Latency (ms)']
+                error_details = error_details.sort_values('Occurrences', ascending=False)
+                error_details['Avg Latency (ms)'] = error_details['Avg Latency (ms)'].round(1)
+                
+                st.dataframe(error_details, use_container_width=True, hide_index=True)
+                
+                st.divider()
+                
+                # =================================================================
+                # ERROR TIMELINE AND TRENDS
+                # =================================================================
+                st.subheader("Error Timeline")
+                st.caption("Track error patterns over time")
+                
+                error_df_copy = error_df.copy()
+                error_df_copy['date'] = error_df_copy['created_at'].dt.date
+                
+                # Daily error count
+                error_by_date = error_df_copy.groupby(['date', 'step_name']).size().reset_index(name='count')
+                
+                fig = px.line(
+                    error_by_date,
+                    x='date',
+                    y='count',
+                    color='step_name',
+                    title="Error Trends Over Time",
+                    labels={'count': 'Error Count', 'date': 'Date', 'step_name': 'Step'},
+                    markers=True
+                )
+                fig.update_layout(
+                    height=350,
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Error heatmap by day of week and hour (if enough data)
+                if len(error_df) > 20:
+                    st.subheader("Error Occurrence Pattern")
+                    error_df_copy['hour'] = error_df_copy['created_at'].dt.hour
+                    error_df_copy['day_of_week'] = error_df_copy['created_at'].dt.day_name()
+                    
+                    error_heatmap = error_df_copy.groupby(['day_of_week', 'hour']).size().reset_index(name='count')
+                    
+                    # Order days of week correctly
+                    day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                    error_pivot = error_heatmap.pivot(index='day_of_week', columns='hour', values='count').fillna(0)
+                    error_pivot = error_pivot.reindex(day_order)
+                    
+                    fig = px.imshow(
+                        error_pivot,
+                        title="Error Occurrence Heatmap (Day of Week vs Hour)",
+                        labels={'x': 'Hour of Day', 'y': 'Day of Week', 'color': 'Error Count'},
+                        color_continuous_scale='Reds',
+                        aspect='auto'
+                    )
+                    fig.update_layout(height=350)
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                st.divider()
+                
+                # =================================================================
+                # SESSIONS WITH ERRORS
+                # =================================================================
+                st.subheader("Sessions with Errors")
+                st.caption("Identify problematic sessions for investigation")
+                
+                # Get sessions that have errors
+                error_sessions = error_df.groupby('session_id').agg({
+                    'metric_id': 'count',
+                    'created_at': 'min',
+                    'step_name': lambda x: ', '.join(x.unique())
+                }).reset_index()
+                error_sessions.columns = ['Session ID', 'Error Count', 'First Error Time', 'Failed Steps']
+                error_sessions = error_sessions.sort_values('Error Count', ascending=False)
+                error_sessions['Session ID'] = error_sessions['Session ID'].str[:12] + "..."
+                
+                st.dataframe(error_sessions.head(20), use_container_width=True, hide_index=True)
+                
+                st.divider()
+                
+                # =================================================================
+                # ERROR CORRELATION ANALYSIS
+                # =================================================================
+                st.subheader("Error Insights")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**Error Latency Analysis**")
+                    st.caption("Do errors take longer to fail?")
+                    
+                    # Compare latency of errors vs success
+                    latency_comparison = df.groupby('status')['latency_ms'].mean().reset_index()
+                    latency_comparison.columns = ['Status', 'Avg Latency (ms)']
+                    
+                    fig = px.bar(
+                        latency_comparison,
+                        x='Status',
+                        y='Avg Latency (ms)',
+                        title="Average Latency by Status",
+                        color='Status',
+                        color_discrete_map={
+                            'success': '#28a745',
+                            'error': '#dc3545',
+                            'skipped': '#ffc107'
+                        }
+                    )
+                    fig.update_layout(height=300, showlegend=False)
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    st.markdown("**Turn Number Impact**")
+                    st.caption("Do errors happen at specific turns?")
+                    
+                    # Error rate by turn number
+                    turn_error_rate = df.groupby('turn_number').apply(
+                        lambda x: (x['status'] == 'error').mean() * 100
+                    ).reset_index()
+                    turn_error_rate.columns = ['Turn Number', 'Error Rate (%)']
+                    
+                    fig = px.line(
+                        turn_error_rate,
+                        x='Turn Number',
+                        y='Error Rate (%)',
+                        title="Error Rate by Turn Number",
+                        markers=True
+                    )
+                    fig.update_traces(line_color='#dc3545', marker_color='#dc3545')
+                    fig.update_layout(height=300)
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                st.divider()
+                
+                # =================================================================
+                # ERROR FILTERING AND EXPORT
+                # =================================================================
+                with st.expander("🔍 Filter and Export Error Data"):
+                    st.caption("Filter errors for detailed investigation")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        error_step_filter = st.multiselect(
+                            "Filter by Step",
+                            options=error_df['step_name'].unique(),
+                            default=[]
+                        )
+                    
+                    with col2:
+                        # Get unique error messages (truncated)
+                        error_messages = error_df['error_message'].unique()
+                        error_msg_filter = st.multiselect(
+                            "Filter by Error Message",
+                            options=error_messages,
+                            default=[],
+                            format_func=lambda x: x[:50] + "..." if len(x) > 50 else x
+                        )
+                    
+                    with col3:
+                        date_range = st.date_input(
+                            "Filter by Date Range",
+                            value=(error_df['created_at'].min().date(), error_df['created_at'].max().date()),
+                            help="Select date range for errors"
+                        )
+                    
+                    # Apply filters
+                    filtered_errors = error_df.copy()
+                    if error_step_filter:
+                        filtered_errors = filtered_errors[filtered_errors['step_name'].isin(error_step_filter)]
+                    if error_msg_filter:
+                        filtered_errors = filtered_errors[filtered_errors['error_message'].isin(error_msg_filter)]
+                    if len(date_range) == 2:
+                        filtered_errors = filtered_errors[
+                            (filtered_errors['created_at'].dt.date >= date_range[0]) &
+                            (filtered_errors['created_at'].dt.date <= date_range[1])
+                        ]
+                    
+                    st.write(f"Showing {len(filtered_errors):,} of {len(error_df):,} errors")
+                    st.dataframe(filtered_errors, use_container_width=True, hide_index=True)
+                    
+                    # Export button
+                    csv_errors = filtered_errors.to_csv(index=False)
+                    st.download_button(
+                        label="Download Error Data (CSV)",
+                        data=csv_errors,
+                        file_name=f"error_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+            
+            else:
+                st.success("🎉 No errors found in the selected date range!")
+                st.info("Your system is running smoothly. All operations completed successfully.")
     
     else:
         st.error("Unable to connect to database")

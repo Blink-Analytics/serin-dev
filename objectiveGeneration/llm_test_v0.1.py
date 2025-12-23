@@ -10,7 +10,7 @@ DEFAULT_MODEL_NAME = "gemini-2.5-flash"
 
 # Page Configuration
 st.set_page_config(
-    page_title="JD to Interview Objectives (Gemini)",
+    page_title="JD to Interview Objectives (Gemini)_v0.1",
     page_icon="🎯",
     layout="centered"
 )
