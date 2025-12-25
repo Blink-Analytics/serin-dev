@@ -21,26 +21,31 @@ with st.sidebar:
     st.subheader("Algorithm")
     st.markdown("**Version:** 1.1")
 
+
     st.markdown("### Completion")
     st.latex(
-        r"\text{completed}_i := (C_i \geq 0.8) \;\lor\; (T^{\text{spent}}_i \geq T^{\text{cap}}_i)"
+        r"\text{completed}_i := (C_i \geq 0.9) \;\lor\; (T^{\text{spent}}_i \geq T^{\text{cap}}_i)"
     )
+
 
     st.markdown("### Priority (selection when focus is None)")
     st.latex(
-        r"m^{\text{depth}}_i := 1 + 0.2 \cdot \left| D^{\text{target}}_i - E_i \right|"
+        r"m^{\text{depth}}_i := 1 + 0.1 \cdot \left| D^{\text{target}}_i - E_i \right|"
     )
     st.latex(
         r"P_i := I_i \cdot \left(\frac{1}{1 + C_i}\right) \cdot m^{\text{depth}}_i + B_i"
     )
+
+
     st.latex(
         r"\text{focus} := \arg\max_i P_i \quad \text{s.t. } \neg \text{completed}_i"
     )
 
+
     st.markdown("### Scoring and Update")
     st.latex(r"\text{score} \in [-10,\; +10]")
     st.latex(
-        r"C := \text{clamp}\left(C + 0.05 \cdot \text{score},\; (-1,\; 1]\right)"
+        r"C := \text{clamp}\left(C + 0.025 \cdot \text{score},\; (-1,\; 1]\right)"
     )
     st.latex(
         r"T^{\text{spent}} := T^{\text{spent}} + \Delta t"
@@ -48,6 +53,7 @@ with st.sidebar:
     st.latex(
         r"\text{remaining} := \text{remaining} - \Delta t"
     )
+
 
     st.markdown("### Unlock Triggers")
     st.latex(
@@ -58,6 +64,7 @@ with st.sidebar:
         r"\text{if unlock: } \text{focus} := \varnothing"
     )
 
+
 st.title("Job Objectives Input UI")
 
 
@@ -67,9 +74,9 @@ if "job_objectives" not in st.session_state:
 
 if not st.session_state.job_objectives:
     st.session_state.job_objectives = [
-        {"id": "obj_1", "title": "Machine Learning", "importance_score": 4, "evidence_score": 2, "difficulty_score": 3},
-        {"id": "obj_2", "title": "Python", "importance_score": 5, "evidence_score": 4, "difficulty_score": 3},
-        {"id": "obj_3", "title": "PyTorch", "importance_score": 2, "evidence_score": 2, "difficulty_score": 2},
+        {"id": "obj_1", "title": "Machine Learning", "importance_score": 7, "evidence_score": 4, "difficulty_score": 6},
+        {"id": "obj_2", "title": "Python", "importance_score": 9, "evidence_score": 7, "difficulty_score": 6},
+        {"id": "obj_3", "title": "PyTorch", "importance_score": 4, "evidence_score": 4, "difficulty_score": 4},
     ]
 
 if "interview" not in st.session_state:
@@ -113,14 +120,14 @@ def _clamp_confidence(c: float) -> float:
 
 def _normalize_scales(objective: dict) -> dict:
     out = dict(objective)
-    out["evidence_score"] = int(_clamp(out.get("evidence_score", 0), 0, 5))
-    out["difficulty_score"] = int(_clamp(out.get("difficulty_score", 1), 1, 5))
-    out["importance_score"] = int(_clamp(out.get("importance_score", 1), 1, 5))
+    out["evidence_score"] = int(_clamp(out.get("evidence_score", 0), 0, 10))
+    out["difficulty_score"] = int(_clamp(out.get("difficulty_score", 1), 1, 10))
+    out["importance_score"] = int(_clamp(out.get("importance_score", 1), 1, 10))
     return out
 
 
 def _combined_weight(I: int, E: int) -> float:
-    return float(I) * (1.0 + (5.0 - float(E)) / 5.0)
+    return float(I) * (1.0 + (10.0 - float(E)) / 10.0)
 
 
 def _compute_time_caps(objectives: list[dict], total_time: int) -> dict:
@@ -182,10 +189,10 @@ def _generate_question(
     prompt = (
         f"{header}\n\n"
         f"Objective: {title}\n"
-        f"Importance (1-5): {I}\n"
-        f"Candidate evidence level (1-5): {E}\n"
-        f"Target difficulty (1-5): {Dtarget}\n"
-        f"Ask at difficulty level Dcurrent={d_current} (1-6 where 6 is slightly above target).\n"
+        f"Importance (1-10): {I}\n"
+        f"Candidate evidence level (0-10): {E}\n"
+        f"Target difficulty (1-10): {Dtarget}\n"
+        f"Ask at difficulty level Dcurrent={d_current} (bounded to [Dtarget-1, Dtarget+1], clamped to 1-10).\n"
         "Avoid semantic duplicates of previously asked questions for this same objective.\n"
         "Previously asked questions (do NOT repeat or rephrase these):\n"
         f"{prev_block}\n"
@@ -198,7 +205,7 @@ def _generate_question(
 
 
 def _is_completed(st_obj: dict) -> bool:
-    return (float(st_obj.get("C", 0.0)) >= 0.8) or (float(st_obj.get("Tspent", 0.0)) >= float(st_obj.get("Tcap", 0.0)))
+    return (float(st_obj.get("C", 0.0)) >= 0.9) or (float(st_obj.get("Tspent", 0.0)) >= float(st_obj.get("Tcap", 0.0)))
 
 
 def _select_next_focus(objs_by_id: dict, state_by_id: dict, candidate_ids: list[str]) -> str | None:
@@ -224,27 +231,26 @@ def _priority(obj: dict, st_obj: dict) -> float:
     Dtarget = int(obj["difficulty_score"])
     C = float(st_obj.get("C", 0.05))
     B = float(st_obj.get("B", 0.0))
-    m_depth = 1.0 + (0.2 * abs(float(Dtarget) - float(E)))
+    m_depth = 1.0 + (0.1 * abs(float(Dtarget) - float(E)))
     denom = max(1.0 + float(C), 0.001)
     return (float(I) * (1.0 / denom) * m_depth) + B
 
 
 def _next_d_current(obj: dict, st_obj: dict) -> int:
-    E = int(obj["evidence_score"])
     Dtarget = int(obj["difficulty_score"])
-    last = int(st_obj.get("Dcurrent", E))
+    lo = int(_clamp(float(Dtarget) - 1.0, 1.0, 10.0))
+    hi = int(_clamp(float(Dtarget) + 1.0, 1.0, 10.0))
+    last = int(st_obj.get("Dcurrent", Dtarget))
     probe = bool(st_obj.get("B", 0.0) >= 50.0)
     last_q = st_obj.get("last_Q")
 
     if probe and isinstance(last_q, (int, float)):
-        if float(last_q) >= 8 and last < (Dtarget + 1):
-            return int(_clamp(last + 1, 1, Dtarget + 1))
-        if float(last_q) <= -3 and last > 1:
-            return int(_clamp(last - 1, 1, Dtarget + 1))
+        if float(last_q) >= 8 and last < hi:
+            return int(_clamp(last + 1, lo, hi))
+        if float(last_q) <= -3 and last > lo:
+            return int(_clamp(last - 1, lo, hi))
 
-    if last < Dtarget:
-        return last + 1
-    return int(_clamp(last, 1, Dtarget + 1))
+    return int(_clamp(last, lo, hi))
 
 
 def _score_answer_q(obj: dict, question: str, answer: str, d_current: int, model_name: str) -> tuple[int, str]:
@@ -261,7 +267,7 @@ def _score_answer_q(obj: dict, question: str, answer: str, d_current: int, model
         "Return STRICT JSON ONLY, with keys: score (integer -10..10), reason (string).\n"
         "No markdown. No extra keys.\n\n"
         f"Objective: {title}\n"
-        f"Target difficulty (1-5): {Dtarget}\n"
+        f"Target difficulty (1-10): {Dtarget}\n"
         f"Question difficulty asked: {d_current}\n\n"
         f"Question: {question}\n\n"
         f"Answer: {answer}\n"
@@ -311,11 +317,11 @@ for i in range(3):
     with c1:
         title = st.text_input("", value=default_rows[i]["Objective"], key=f"obj_title_{i}")
     with c2:
-        imp = st.number_input("", min_value=1, max_value=5, step=1, value=int(default_rows[i]["I"]), key=f"obj_I_{i}")
+        imp = st.number_input("", min_value=1, max_value=10, step=1, value=int(default_rows[i]["I"]), key=f"obj_I_{i}")
     with c3:
-        ev = st.number_input("", min_value=0, max_value=5, step=1, value=int(default_rows[i]["E"]), key=f"obj_E_{i}")
+        ev = st.number_input("", min_value=0, max_value=10, step=1, value=int(default_rows[i]["E"]), key=f"obj_E_{i}")
     with c4:
-        diff = st.number_input("", min_value=1, max_value=5, step=1, value=int(default_rows[i]["D"]), key=f"obj_D_{i}")
+        diff = st.number_input("", min_value=1, max_value=10, step=1, value=int(default_rows[i]["D"]), key=f"obj_D_{i}")
     edited_rows.append({"Objective": title, "I": imp, "E": ev, "D": diff})
 
 if st.button("Apply edits"):
@@ -351,10 +357,10 @@ if not ok:
 api_col1, api_col2 = st.columns([4, 1])
 with api_col1:
     st.session_state.gemini_api_key = st.text_input(
-        "Gemini API key (optional override)",
+        "Gemini API key",
         value=st.session_state.gemini_api_key,
         type="password",
-        help="If set, this key overrides .env for this session.",
+        help="Required to run Gemini calls in this app.",
     )
 with api_col2:
     if st.button("Apply key"):
@@ -405,7 +411,7 @@ with col_a:
                 "Tspent": 0.0,
                 "Tcap": float(time_caps.get(oid, 0.0)),
                 "B": 0.0,
-                "Dcurrent": int(_clamp(o["evidence_score"], 1, int(o["difficulty_score"]) + 1)),
+                "Dcurrent": int(_clamp(o["difficulty_score"], 1, 10)),
                 "last_Q": None,
             }
         st.session_state.interview["state"] = state
@@ -513,10 +519,10 @@ if st.session_state.interview["running"]:
                         sel_state["last_Q"] = q_val
 
                         score = int(q_val)
-                        sel_state["C"] = _clamp_confidence(float(sel_state["C"]) + (0.05 * float(score)))
+                        sel_state["C"] = _clamp_confidence(float(sel_state["C"]) + (0.025 * float(score)))
 
                         I = int(sel_obj["importance_score"])
-                        if score <= -3 and I == 5:
+                        if score <= -3 and I >=8:
                             sel_state["B"] = 50.0
                             sel_state["K"] = int(sel_state["K"]) + 1
                         elif score >= 8 and d_current < int(sel_obj["difficulty_score"]):
@@ -558,7 +564,7 @@ if st.session_state.interview["running"]:
                         # Exit logic / unlock triggers
                         scores = st.session_state.interview.get("score_history", {}).get(focus_id, [])
                         stuck = len(scores) >= 2 and (scores[-1] < -3) and (scores[-2] < -3)
-                        success = float(sel_state.get("C", 0.0)) >= 0.8
+                        success = float(sel_state.get("C", 0.0)) >= 0.9
                         timeout = float(sel_state.get("Tspent", 0.0)) >= float(sel_state.get("Tcap", 0.0))
                         if success or timeout or stuck:
                             st.session_state.interview["current_focus_id"] = None

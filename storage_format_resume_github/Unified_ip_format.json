@@ -1,0 +1,196 @@
+{
+  "candidateProfile": {
+    "type": "object",
+    "description": "Consolidated view of the candidate merging Resume and GitHub data.",
+    "required": [
+      "personalDetails",
+      "education",
+      "experience",
+      "projects",
+      "skills",
+      "meta"
+    ],
+    "properties": {
+      "personalDetails": {
+        "type": "object",
+        "description": "Merged contact and bio information from both sources.",
+        "properties": {
+          "fullName": { "type": "string" },
+          "bio": { "type": "string" },
+          "contactNumber": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "socialLinks": {
+            "type": "object",
+            "properties": {
+              "linkedin": { "type": "string" },
+              "github": { "type": "string" },
+              "portfolio": { "type": "string" }
+            }
+          },
+          "location": { "type": "string" }
+        }
+      },
+
+      "education": {
+        "type": "array",
+        "description": "Education details extracted primarily from the Resume.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "institution": { "type": "string" },
+            "degree": { "type": "string" },
+            "fieldOfStudy": { "type": "string" },
+            "startDate": { "type": "string" },
+            "endDate": { "type": "string" },
+            "gradeOrScore": { "type": "string" }
+          }
+        }
+      },
+
+      "experience": {
+        "type": "array",
+        "description": "Employment details extracted from the Resume.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "companyName": { "type": "string" },
+            "role": { "type": "string" },
+            "location": { "type": "string" },
+            "startDate": { "type": "string" },
+            "endDate": { "type": "string" },
+            "description": {
+              "type": "string",
+              "description": "Key responsibilities and achievements listed in the resume."
+            }
+          }
+        }
+      },
+
+      "projects": {
+        "type": "array",
+        "description": "Combined list of projects from Resume and GitHub repositories.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "keyTechnologies": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "links": {
+              "type": "object",
+              "properties": {
+                "githubUrl": { "type": "string" },
+                "deploymentUrl": { "type": "string" }
+              }
+            },
+            "source": {
+              "type": "string",
+              "enum": ["Resume", "GitHub", "Both"]
+            },
+            "contributions": {
+              "type": "array",
+              "description": "GitHub contributions per year.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "year": { "type": "integer" },
+                  "commits": { "type": "integer" },
+                  "totalContributions": { "type": "integer" }
+                }
+              }
+            }
+          }
+        }
+      },
+
+      "skills": {
+        "type": "object",
+        "description": "Consolidated skills: Resume explicitly listed skills + GitHub calculated languages.",
+        "properties": {
+          "technical": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "skillName": { "type": "string" },
+                "source": {
+                  "type": "string",
+                  "enum": ["Resume", "GitHub", "Both"]
+                },
+                "githubUsageBytes": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "soft": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "skillName": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+
+      "researchWork": {
+        "type": "array",
+        "description": "Research papers or publications mentioned in the Resume.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "publicationDate": { "type": "string" },
+            "publisherOrJournal": { "type": "string" },
+            "description": { "type": "string" },
+            "link": { "type": "string" }
+          }
+        }
+      },
+
+      "positionsOfResponsibility": {
+        "type": "array",
+        "description": "Leadership roles or volunteer work from Resume.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "organization": { "type": "string" },
+            "duration": { "type": "string" },
+            "description": { "type": "string" }
+          }
+        }
+      },
+
+      "certifications": {
+        "type": "array",
+        "description": "Certifications found in Resume or linked resources.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "issuingOrganization": { "type": "string" },
+            "credentialUrl": { "type": "string" }
+          }
+        }
+      },
+
+      "meta": {
+        "type": "object",
+        "required": ["lastUpdated", "sourcesProcessed"],
+        "properties": {
+          "lastUpdated": { "type": "string", "format": "date-time" },
+          "sourcesProcessed": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["Resume", "GitHub"] }
+          },
+          "candidateId": { "type": "string" }
+        }
+      }
+    }
+  }
+}
