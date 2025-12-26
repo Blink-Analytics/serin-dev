@@ -660,26 +660,42 @@ def generate_interview_scoring_prompt_v4_production(job_description_json, object
     """
     V4: ULTIMATE PRODUCTION version with explicit anti-pattern detection.
     
-    This version adds critical clarifications to prevent the LLM from blindly
-    scoring in decreasing order. It emphasizes that objectives may or may not
-    already be ranked, and the LLM must evaluate each based on content alone.
+    This version is fully modular and adapts to ANY number of objectives and
+    any job description provided. It prevents the LLM from blindly scoring
+    in decreasing order and ensures evaluation based on actual content.
     
-    Key improvements over V3:
+    Key features:
+    - Works with ANY number of objectives (not hardcoded to 3)
+    - Uses actual job description provided (not hardcoded example)
+    - Dynamic distribution rules based on objective count
     - Explicit warning that input order is arbitrary
     - Examples showing non-sequential scoring patterns
     - Quality check to detect sequential scoring anti-pattern
-    - Clarification that objectives MIGHT be pre-sorted, but probably aren't
     
     Args:
-        job_description_json (str): The job description context.
-        objectives_list (list): List of objective strings to score together.
+        job_description_json (str): The actual job description context.
+        objectives_list (list): List of objective strings to score (any length).
         
     Returns:
-        str: The ultimate production-grade prompt.
+        str: The production-grade prompt customized for the inputs.
     """
+    num_objectives = len(objectives_list)
     objectives_formatted = "\n".join([
         f"{i+1}. {obj}" for i, obj in enumerate(objectives_list)
     ])
+    
+    # Calculate distribution guidelines based on number of objectives
+    num_dealbreakers = max(1, min(2, num_objectives // 3))
+    num_important = max(1, int(num_objectives * 0.2))
+    num_standard = max(1, int(num_objectives * 0.5))
+    num_nice_to_have = max(1, int(num_objectives * 0.2))
+    num_low_priority = max(1, int(num_objectives * 0.1))
+    # Calculate distribution guidelines based on number of objectives
+    num_dealbreakers = max(1, min(2, num_objectives // 3))
+    num_important = max(1, int(num_objectives * 0.2))
+    num_standard = max(1, int(num_objectives * 0.5))
+    num_nice_to_have = max(1, int(num_objectives * 0.2))
+    num_low_priority = max(1, int(num_objectives * 0.1))
     
     return f"""### PRODUCTION SCORING SYSTEM V4 ###
 
@@ -687,7 +703,7 @@ def generate_interview_scoring_prompt_v4_production(job_description_json, object
 You are a Senior Technical Hiring Manager with 15+ years conducting 10,000+ technical interviews across FAANG, startups, and enterprises. You are known for being BRUTALLY HONEST, data-driven, and having a 95% interview-to-hire accuracy rate.
 
 **YOUR MANDATE:**
-Score ALL {len(objectives_list)} objectives for this job by comparing them DIRECTLY to each other and to industry standards. Your scores determine which questions get asked first and how deeply we probe—bad scoring means bad hires costing $200K+ per mistake.
+Score ALL {num_objectives} objectives for this job by comparing them DIRECTLY to each other and to industry standards. Your scores determine which questions get asked first and how deeply we probe—bad scoring means bad hires costing $200K+ per mistake.
 
 **THE STAKES:**
 - Over-scoring (giving everything 8-9) = Weak interviews, bad hires, company failure
@@ -698,7 +714,7 @@ Score ALL {len(objectives_list)} objectives for this job by comparing them DIREC
 **JOB CONTEXT:**
 {job_description_json}
 
-**OBJECTIVES TO SCORE ({len(objectives_list)} total):**
+**OBJECTIVES TO SCORE ({num_objectives} total):**
 {objectives_formatted}
 
 ---
@@ -749,18 +765,18 @@ Correct scores might be: [9.2, 8.5, 9.5, 6.8, 8.8] — NOT sequential!
 **CRITICAL SCORING RULES (FOLLOW OR YOUR OUTPUT IS REJECTED):**
 
 **RULE 1: FORCED DISTRIBUTION**
-For {len(objectives_list)} objectives, you MUST create this distribution:
-- **Exactly 1-2 objectives**: 9.0-10.0 (the MOST critical skills for this role)
-- **~20% of objectives**: 7.0-8.5 (important but not make-or-break)
-- **~50% of objectives**: 4.0-6.5 (standard/expected at this level)
-- **~20% of objectives**: 2.0-3.5 (nice-to-have or peripheral)
-- **At least 1 objective**: 1.0-2.0 (low priority/tangential)
+For {num_objectives} objectives, you MUST create this distribution:
+- **Exactly {num_dealbreakers} objective(s)**: 9.0-10.0 (the MOST critical skills for this role)
+- **~{num_important} objective(s)**: 7.0-8.5 (important but not make-or-break)
+- **~{num_standard} objective(s)**: 4.0-6.5 (standard/expected at this level)
+- **~{num_nice_to_have} objective(s)**: 2.0-3.5 (nice-to-have or peripheral)
+- **At least {num_low_priority} objective(s)**: 1.0-2.0 (low priority/tangential)
 
 **RULE 2: THE COMPARISON METHOD (CONTENT-BASED, NOT POSITION-BASED)**
 You CANNOT score based on list position. Use this process:
-1. Read all {len(objectives_list)} objectives first (IGNORE the numbering 1, 2, 3, ...)
-2. Ask: "Which ONE objective describes the most critical task for success in this role?" → That's your 9-10 anchor (could be objective #1, #3, #5, or ANY position)
-3. Ask: "Which objective describes the most peripheral/mundane task?" → That's your 1-3 anchor (could be #2, #4, or ANY position)
+1. Read all {num_objectives} objectives first (IGNORE the numbering 1, 2, 3, ...)
+2. Ask: "Which ONE objective describes the most critical task for success in this role?" → That's your 9-10 anchor (could be objective #1, #{num_objectives//2}, #{num_objectives}, or ANY position)
+3. Ask: "Which objective describes the most peripheral/mundane task?" → That's your 1-3 anchor (could be #2, #{num_objectives//3}, or ANY position)
 4. Rank the rest BETWEEN these anchors based on CONTENT, not list order
 5. Check: Do I have proper spread? (highest - lowest ≥ 6 points)
 6. **VERIFY:** Are my scores based on what each objective SAYS, not where it appears in the list?
@@ -887,20 +903,18 @@ Valid patterns look like: [7.2, 9.5, 3.0, 8.5, 2.2] or [5.5, 6.8, 9.2, 3.5, 7.8]
 **OUTPUT FORMAT:**
 Return ONLY a JSON array with one object per objective (same order as input, but values vary based on content):
 
-Example with 5 objectives:
+Example format for {num_objectives} objectives:
 [
   {{"importance": 5.2, "difficulty": 4.0}},
   {{"importance": 9.5, "difficulty": 8.0}},
   {{"importance": 2.0, "difficulty": 2.5}},
-  {{"importance": 7.8, "difficulty": 6.5}},
-  {{"importance": 3.5, "difficulty": 3.0}}
+  ...
 ]
 
-**NOTICE:** The scores jump around! Objective #2 scored highest (9.5), not #1.
-This is because #2's CONTENT was most critical, not because of its position.
+**NOTICE:** The scores jump around! They are NOT in order because each objective's CONTENT determines its score, not its position.
 
 **VALIDATION:**
-- Array length MUST equal {len(objectives_list)}
+- Array length MUST equal {num_objectives}
 - Each object MUST have exactly 2 keys: "importance" and "difficulty"
 - Values MUST be numbers (decimals preferred, e.g., 7.5 not 7 or "high")
 - Range: 0.0 ≤ value ≤ 10.0

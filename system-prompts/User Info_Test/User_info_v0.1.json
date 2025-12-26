@@ -1,0 +1,244 @@
+{
+  "candidateProfile": {
+    "personalDetails": {
+      "fullName": "Meet Bhatt",
+      "bio": "B.Tech Computer Engineering student with a minor in IoT, currently an LLM Development Intern. Experienced in leading multidisciplinary teams for AI-driven product development and data analytics optimization.",
+      "contactNumber": "(+91) 9427703634",
+      "email": "meetbhatt2304@gmail.com",
+      "socialLinks": {
+        "linkedin": "https://www.linkedin.com/in/meet-bhatt/",
+        "github": "https://github.com/Meet2304",
+        "portfolio": "https://datacamp.com/portfolio/meetbhatt2304"
+      },
+      "location": "Gandhinagar, Gujarat"
+    },
+    "education": [
+      {
+        "institution": "Pandit Deendayal Energy University",
+        "degree": "Bachelor of Technology",
+        "fieldOfStudy": "Computer Engineering with Minor in IoT",
+        "startDate": "2022",
+        "endDate": "2026",
+        "gradeOrScore": "CGPA: 9.57"
+      },
+      {
+        "institution": "Green Valley High School",
+        "degree": "Higher Secondary Education",
+        "startDate": "2020",
+        "endDate": "2022",
+        "gradeOrScore": "Percentage: 93.4%"
+      }
+    ],
+    "experience": [
+      {
+        "companyName": "Blink Analytics",
+        "role": "LLM Development Intern",
+        "location": "Gandhinagar, Gujarat",
+        "startDate": "Aug, 2024",
+        "endDate": "Present",
+        "description": "Leading multidisciplinary teams in designing AI and LLM-based solutions, optimizing SFT and RLHF pipelines, and building internal data analytics systems that increased project revenue by 222%."
+      },
+      {
+        "companyName": "Astar Technologies",
+        "role": "Lead Business and Data Analysis Intern",
+        "location": "Remote",
+        "startDate": "Dec 2023",
+        "endDate": "Jan 2023",
+        "description": "Led end-to-end analysis of customer sales data using machine learning models like ARIMA and Random Forest to optimize marketing and logistics."
+      },
+      {
+        "companyName": "Seaweeds",
+        "role": "Business and Data Analysis Intern",
+        "location": "Remote",
+        "startDate": "Apr, 2023",
+        "endDate": "Aug, 2023",
+        "description": "Applied data analysis techniques to predict harmful algal blooms and processed large datasets for machine learning models."
+      }
+    ],
+    "projects": [
+      {
+        "title": "Project Phoenix",
+        "description": "Explainable Cervical Cancer Classification using deep learning to classify cervical cell images into diagnostic categories.",
+        "keyTechnologies": [
+          "Python",
+          "ConvNeXtV2",
+          "Efficient Net V2-S",
+          "GRADCAM",
+          "LAYERCAM",
+          "Jupyter Notebook"
+        ],
+        "links": {
+          "githubUrl": "https://github.com/Meet2304/Project-Phoenix",
+          "deploymentUrl": "https://github.com/Meet2304/Project-Phoenix"
+        },
+        "source": "Both",
+        "contributions": [
+          {
+            "year": 2025,
+            "commits": 45,
+            "totalContributions": 120
+          }
+        ]
+      },
+      {
+        "title": "Project Talaria",
+        "description": "Integrated footwear system for cardiovascular and gait analysis, combining MPU6050 and MAX30105 sensors with ESP32 firmware.",
+        "keyTechnologies": [
+          "TypeScript",
+          "ESP32-S3",
+          "I2C",
+          "Firebase",
+          "C++"
+        ],
+        "links": {
+          "githubUrl": "https://github.com/Meet2304/Project-Talaria",
+          "deploymentUrl": "https://github.com/Meet2304/Project-Talaria"
+        },
+        "source": "Both"
+      },
+      {
+        "title": "Project Monarch",
+        "description": "Unified control center for product financial forecasting and cost analysis, modeling granular components like API fees and labor costs.",
+        "keyTechnologies": [
+          "TypeScript",
+          "Financial Modeling",
+          "Cost Management"
+        ],
+        "links": {
+          "githubUrl": "https://github.com/Meet2304/Project-Monarch"
+        },
+        "source": "GitHub"
+      },
+      {
+        "title": "Malicious Prompt Classifier",
+        "description": "Stochastic detection engine for adversarial LLM prompts using k-gram transition topology, achieving 90.79% accuracy on MPDD benchmarks.",
+        "keyTechnologies": [
+          "Python",
+          "Probabilistic Modeling",
+          "NLP",
+          "Markov Chain"
+        ],
+        "links": {
+          "githubUrl": "https://github.com/Meet2304/Malicious-Prompt-Classifier"
+        },
+        "source": "Resume"
+      },
+      {
+        "title": "Project Icarus",
+        "description": "Custom drone development from scratch using Teensy 4.0 microcontroller and a fully functional flight controller in C.",
+        "keyTechnologies": [
+          "C",
+          "PCB Design",
+          "Microcontroller Programming"
+        ],
+        "links": {
+          "githubUrl": "https://github.com/Meet2304/Project-Icarus"
+        },
+        "source": "Resume"
+      },
+      {
+        "title": "Project-Nemesis",
+        "description": "Citizen-focused initiative dedicated to transforming court operations in Gujarat to enhance transparency and simplify processes.",
+        "keyTechnologies": [
+          "TypeScript",
+          "Legaltech",
+          "E-governance"
+        ],
+        "links": {
+          "githubUrl": "https://github.com/Meet2304/Project-Nemesis"
+        },
+        "source": "GitHub"
+      }
+    ],
+    "skills": {
+      "technical": [
+        {
+          "skillName": "Python",
+          "source": "Both"
+        },
+        {
+          "skillName": "TypeScript",
+          "source": "GitHub",
+          "githubUsageBytes": 450000
+        },
+        {
+          "skillName": "C",
+          "source": "Resume"
+        },
+        {
+          "skillName": "Machine Learning",
+          "source": "Resume"
+        },
+        {
+          "skillName": "Deep Learning",
+          "source": "Resume"
+        },
+        {
+          "skillName": "IoT",
+          "source": "Resume"
+        }
+      ],
+      "soft": [
+        {
+          "skillName": "Team Leadership"
+        },
+        {
+          "skillName": "Project Management"
+        },
+        {
+          "skillName": "Strategic Planning"
+        },
+        {
+          "skillName": "Public Speaking"
+        }
+      ]
+    },
+    "researchWork": [
+      {
+        "title": "Explainable Cervical Cancer Classification",
+        "publicationDate": "June 2025",
+        "publisherOrJournal": "Manuscript in preparation",
+        "description": "Architected an XAI framework leveraging ConvNeXtV2 and Efficient Net V2-S with GRADCAM for enhanced model interpretability."
+      },
+      {
+        "title": "Malicious Prompt Classifier - Markov Chain Detection System",
+        "publicationDate": "Oct 2025",
+        "publisherOrJournal": "Conference Submission",
+        "description": "Developed a stochastic detection engine for adversarial LLM prompts using k-gram transition topology."
+      }
+    ],
+    "positionsOfResponsibility": [
+      {
+        "title": "President",
+        "organization": "Mind Ripple - The Quizzing Club of PDEU",
+        "duration": "2024-2025",
+        "description": "Led a 30-member team in quiz design and event planning, increasing earnings by 10% through flagship events like Matrix Breakout."
+      },
+      {
+        "title": "Charter President (Founder)",
+        "organization": "Interact Club of Baroda Sayajinagari",
+        "duration": "2021-2022",
+        "description": "Founded a team of 32 members to initiate social service projects including educational drives and healthcare aid distribution."
+      }
+    ],
+    "certifications": [
+      {
+        "name": "Associate Data Scientist in Python",
+        "issuingOrganization": "Datacamp",
+        "credentialUrl": "https://datacamp.com/portfolio/meetbhatt2304"
+      },
+      {
+        "name": "Professional Certificate Applications of AI",
+        "issuingOrganization": "IBM"
+      }
+    ],
+    "meta": {
+      "lastUpdated": "2025-12-26T12:50:00Z",
+      "sourcesProcessed": [
+        "Resume",
+        "GitHub"
+      ],
+      "candidateId": "MeetBhatt2304"
+    }
+  }
+}

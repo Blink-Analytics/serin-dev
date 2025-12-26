@@ -116,6 +116,8 @@ def _generate_question(
     model_name: str,
     previous_questions: list[str] | None = None,
     prompt_override: str | None = None,
+    user_details: str | None = None,
+    qa_history: list[dict] | None = None,
 ) -> str:
     title = obj["title"].strip() or "(untitled objective)"
     I = int(obj["importance_score"])
@@ -123,37 +125,132 @@ def _generate_question(
     Dtarget = int(obj["difficulty_score"])
     prev = [q.strip() for q in (previous_questions or []) if str(q).strip()]
     prev_block = "\n".join([f"- {q}" for q in prev[-8:]]) if prev else "(none)"
+    
+    # Parse and format user details for better readability
+    user_details_block = ""
+    if user_details and user_details.strip():
+        try:
+            # Try to parse JSON for better formatting
+            parsed = json.loads(user_details)
+            # Format the JSON nicely
+            user_details_block = json.dumps(parsed, indent=2)
+        except:
+            # If not valid JSON, use as-is
+            user_details_block = user_details
 
-    default_header = (
-        "You are an interview question generator.\n"
-        "Generate ONE concise interview question for the objective below.\n"
-        "Return ONLY the question text.\n"
-    )
-    header = (prompt_override or "").strip() or default_header
+    # Build Q&A history block for context-aware follow-ups
+    qa_history_block = ""
+    if qa_history:
+        # Filter history for current objective only
+        obj_id = obj.get("id")
+        relevant_history = [turn for turn in qa_history if turn.get("objective_id") == obj_id]
+        
+        if relevant_history:
+            qa_history_block = "\n### PREVIOUS Q&A CONTEXT FOR THIS OBJECTIVE\n"
+            qa_history_block += "Use this context to generate follow-up questions that build on the candidate's demonstrated knowledge:\n\n"
+            
+            for i, turn in enumerate(relevant_history[-5:], 1):  # Last 5 turns only
+                qa_history_block += f"**Turn {i}:**\n"
+                qa_history_block += f"- Question (D={turn.get('d_current')}): {turn.get('question', 'N/A')}\n"
+                qa_history_block += f"- Answer: {turn.get('answer', 'N/A')[:200]}{'...' if len(str(turn.get('answer', ''))) > 200 else ''}\n"
+                qa_history_block += f"- Score: {turn.get('score', 'N/A')} (Confidence after: {turn.get('c_after', 0):.3f})\n\n"
+            
+            qa_history_block += "**Follow-up Strategy:**\n"
+            qa_history_block += "- If previous scores were high (≥7): Increase depth or explore edge cases\n"
+            qa_history_block += "- If previous scores were low (≤3): Simplify or provide scaffolding\n"
+            qa_history_block += "- Build on specific technical details mentioned in their answers\n"
+            qa_history_block += "- Reference their previous responses to create continuity\n\n"
+    
+    default_prompt = f"""### ROLE
+You are the "Serin" Adaptive Interview Engine. Your goal is to conduct a realistic, conversational technical interview that validates a candidate's fit against specific objectives by grounding questions in their actual experience.
 
-    prompt = (
-        f"{header}\n\n"
-        f"Objective: {title}\n"
-        f"Importance (1-10): {I}\n"
-        f"Candidate evidence level (0-10): {E}\n"
-        f"Target difficulty (1-10): {Dtarget}\n"
-        f"Ask at difficulty level Dcurrent={d_current} (bounded to [Dtarget-1, Dtarget+1], clamped to 1-10).\n"
-        "Avoid semantic duplicates of previously asked questions for this same objective.\n"
-        "Previously asked questions (do NOT repeat or rephrase these):\n"
-        f"{prev_block}\n"
-        "Constraints:\n"
-        "- Ask one question.\n"
-        "- No multi-part questions.\n"
-        "- Prefer answerable in 1-2 minutes.\n"
-    )
+### CANDIDATE CONTEXT
+{user_details_block if user_details_block else "[No candidate details provided]"}
+{qa_history_block}
+### INTERVIEW STATE
+- **Active Objective:** {title}
+- **Target Difficulty (D_target):** {Dtarget}
+- **Current Difficulty (D_current):** {d_current}
+- **Evidence Level (E):** {E} (Initial knowledge baseline)
+- **Importance (I):** {I}
+- **Previous Questions:** {'Present' if prev else 'None'}
+
+### QUESTION GENERATION PRINCIPLES
+
+**1. SINGLE, CLEAR QUESTION THAT MAXIMIZES JOB-MATCH SIGNAL**
+- Generate exactly ONE question that is easy to understand
+- The question should reveal the most about whether this candidate can do the job
+- Prioritize questions that expose practical experience, decision-making, and problem-solving
+- Each answer should move you closer to a confident hire/no-hire decision
+- Avoid questions that can be answered with memorized facts or generic responses
+
+**2. BE REALISTIC AND CONVERSATIONAL**
+- Ask questions that sound like a real human interviewer would ask
+- Avoid overly formal or robotic phrasing
+- Use natural language, not academic jargon or overly complex sentence structures
+- Focus on practical scenarios from their actual work, not theoretical abstractions
+
+**3. GROUND IN CANDIDATE'S ACTUAL EXPERIENCE**
+- **ALWAYS** reference specific projects, companies, or technologies from the candidate's profile
+- Ask "In your work at [Company/Project], how did you..." rather than generic questions
+- Make questions feel like a natural conversation about their real work
+- Use their resume/profile as the foundation for every question
+
+**4. DIFFICULTY CALIBRATION (D_current={d_current}):**
+- **Levels 1-3 (Basic):** 
+  - "Walk me through how you implemented [X] in [Project]"
+  - "What approach did you take when building [Y]?"
+  
+- **Levels 4-7 (Intermediate):**
+  - "When you faced [challenge] in [Project], what trade-offs did you consider?"
+  - "How did you decide between [approach A] and [approach B]?"
+  
+- **Levels 8-10 (Advanced):**
+  - "If [constraint] changed in your [Project], how would your architecture need to adapt?"
+  - "What failure scenarios did you plan for when building [X]?"
+
+**5. OPTIMIZE FOR SIGNAL-TO-NOISE RATIO**
+- Every word in the question should contribute to understanding job fit
+- If E is high (≥7): Ask about specific decisions and trade-offs that reveal expertise
+- If E is low (<4): Ask accessible questions about their actual projects to establish baseline
+- Avoid questions that can be answered by someone who just read the documentation
+
+### CONSTRAINTS
+- **Output:** Generate exactly ONE question
+- **Format:** Return ONLY the question text (no preamble, no explanation)
+- **Clarity:** Use simple, direct language that any candidate can understand immediately
+- **No Multi-parts:** Absolutely no compound questions or follow-up clauses
+- **Answerable in 60-120 seconds**
+- **MUST reference candidate's actual work:** Use their projects, companies, or technologies
+- **Avoid these previously asked questions:**
+{prev_block}
+
+### EXAMPLES OF GOOD VS BAD QUESTIONS
+
+**BAD (Generic, low signal-to-noise ratio):**
+- "What is microservices architecture?" (Definition, not experience)
+- "Explain the differences between SQL and NoSQL" (Textbook answer)
+- "How do you implement authentication?" (Too broad, no context)
+
+**GOOD (Clear, high-signal, grounded in experience):**
+- "In Project Phoenix, why did you choose ConvNeXtV2 over other architectures?" (Simple question, reveals decision-making)
+- "At Blink Analytics, what was the biggest bottleneck in your SFT pipelines?" (Easy to understand, exposes real problem-solving)
+- "How did you validate your k-gram approach would work before implementing it?" (Clear question, shows engineering rigor)
+
+### TASK
+Generate ONE simple, clear interview question for "{title}" at Difficulty {d_current} that maximizes signal about job fit.
+Use the candidate's actual projects/experience and make it immediately understandable."""
+
+    prompt = (prompt_override or "").strip() or default_prompt
+    
     return _gemini_text(prompt, model_name)
 
 
-def _is_completed(st_obj: dict) -> bool:
-    return (float(st_obj.get("C", 0.0)) >= 0.9) or (float(st_obj.get("Tspent", 0.0)) >= float(st_obj.get("Tcap", 0.0)))
+def _is_completed(st_obj: dict, confidence_threshold: float = 0.9) -> bool:
+    return (float(st_obj.get("C", 0.0)) >= confidence_threshold) or (float(st_obj.get("Tspent", 0.0)) >= float(st_obj.get("Tcap", 0.0)))
 
 
-def _select_next_focus(objs_by_id: dict, state_by_id: dict, candidate_ids: list[str]) -> str | None:
+def _select_next_focus(objs_by_id: dict, state_by_id: dict, candidate_ids: list[str], depth_weight: float = 0.1, confidence_threshold: float = 0.9) -> str | None:
     best_id = None
     best_p = None
     for oid in candidate_ids:
@@ -161,22 +258,22 @@ def _select_next_focus(objs_by_id: dict, state_by_id: dict, candidate_ids: list[
         st_obj = state_by_id.get(oid)
         if not obj or not st_obj:
             continue
-        if _is_completed(st_obj):
+        if _is_completed(st_obj, confidence_threshold):
             continue
-        p = _priority(obj, st_obj)
+        p = _priority(obj, st_obj, depth_weight)
         if best_p is None or p > best_p:
             best_p = p
             best_id = oid
     return best_id
 
 
-def _priority(obj: dict, st_obj: dict) -> float:
+def _priority(obj: dict, st_obj: dict, depth_weight: float = 0.1) -> float:
     I = int(obj["importance_score"])
     E = int(obj["evidence_score"])
     Dtarget = int(obj["difficulty_score"])
     C = float(st_obj.get("C", 0.05))
     B = float(st_obj.get("B", 0.0))
-    m_depth = 1.0 + (0.1 * abs(float(Dtarget) - float(E)))
+    m_depth = 1.0 + (depth_weight * abs(float(Dtarget) - float(E)))
     denom = max(1.0 + float(C), 0.001)
     return (float(I) * (1.0 / denom) * m_depth) + B
 
@@ -248,7 +345,8 @@ def main() -> None:
         )
 
         st.markdown("### Priority (selection when focus is None)")
-        st.latex(r"m^{\text{depth}}_i := 1 + 0.1 \cdot \left| D^{\text{target}}_i - E_i \right|")
+        depth_w = st.session_state.get('priority_depth_weight', 0.1)
+        st.latex(rf"m^{{\text{{depth}}}}_i := 1 + {depth_w:.2f} \cdot \left| D^{{\text{{target}}}}_i - E_i \right|")
         st.latex(r"P_i := I_i \cdot \left(\frac{1}{1 + C_i}\right) \cdot m^{\text{depth}}_i + B_i")
 
         st.latex(r"\text{focus} := \arg\max_i P_i \quad \text{s.t. } \neg \text{completed}_i")

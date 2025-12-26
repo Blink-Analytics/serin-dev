@@ -216,6 +216,7 @@ def main() -> None:
 
     _ss_init("job_desc", "")
     _ss_init("job_objectives", [])
+    _ss_init("scored_objectives", None)  # Store scored objectives separately
 
     _ss_init("groq_api_key", "")
     _ss_init("groq_model", "llama-3.1-8b-instant")
@@ -277,6 +278,10 @@ def main() -> None:
         height=120,
     )
 
+    # Show default objective generation prompt
+    with st.expander("📄 View Default Objective Generation Prompt"):
+        st.code(_default_objective_generation_prompt("[Job Description Text]", 5), language="text")
+
     col_gen_a, col_gen_b = st.columns([1, 3])
     with col_gen_a:
         n_objectives = st.number_input("# objectives", min_value=3, max_value=10, value=5, step=1)
@@ -308,11 +313,14 @@ def main() -> None:
                                 for i, t in enumerate(titles)
                             ]
                         )
+                        # Clear scored objectives when new objectives are generated
+                        st.session_state.scored_objectives = None
                         st.success("Objectives generated")
                     except Exception as e:
                         st.error(str(e))
 
     if st.session_state.job_objectives:
+        st.subheader("Generated Objectives (Editable)")
         df = pd.DataFrame(st.session_state.job_objectives)
         df_display = df[["id", "title", "importance_score", "difficulty_score", "evidence_score"]]
         edited_df = st.data_editor(
@@ -330,25 +338,39 @@ def main() -> None:
         )
         st.session_state.job_objectives = _normalize_objectives_table(edited_df.to_dict("records"))
 
-        col_a, col_b, col_c = st.columns(3)
+        col_a, col_b = st.columns([1, 2])
         with col_a:
             if st.button("Randomize evidence (0-10)"):
                 st.session_state.job_objectives = [
                     {**o, "evidence_score": random.randint(0, 10)} for o in st.session_state.job_objectives
                 ]
+                st.rerun()
         with col_b:
             st.session_state.objective_scoring_prompt_override = st.text_area(
                 "Objective scoring prompt override (optional)",
                 value=st.session_state.objective_scoring_prompt_override,
                 height=100,
             )
-        with col_c:
-            if st.button("Run objective scoring"):
-                if not st.session_state.groq_api_key.strip():
-                    st.error("Missing Groq API key")
-                elif not st.session_state.job_desc.strip():
-                    st.error("Missing job description")
-                else:
+        
+        # Show default objective scoring prompt
+        with st.expander("📄 View Default Objective Scoring Prompt"):
+            sample_titles = [obj["title"] for obj in st.session_state.job_objectives[:3]]
+            st.code(generate_interview_scoring_prompt_v4_production(
+                st.session_state.job_desc or "[Job Description]",
+                sample_titles or ["Sample Objective 1", "Sample Objective 2"]
+            ), language="text")
+            st.caption("Note: This shows a sample with the first few objectives")
+        
+        st.markdown("---")
+        
+        if st.button("🚀 Run Objective Scoring", type="primary", use_container_width=True):
+            if not st.session_state.groq_api_key.strip():
+                st.error("Missing Groq API key")
+            elif not st.session_state.job_desc.strip():
+                st.error("Missing job description")
+            else:
+                # Show progress indicator
+                with st.spinner(f"Scoring {len(st.session_state.job_objectives)} objectives with Groq AI..."):
                     updated, err = _score_objectives(
                         job_desc=st.session_state.job_desc,
                         objectives=st.session_state.job_objectives,
@@ -357,11 +379,58 @@ def main() -> None:
                         max_retries=int(st.session_state.max_retries),
                         prompt_override=st.session_state.objective_scoring_prompt_override,
                     )
-                    st.session_state.job_objectives = updated
-                    if err:
-                        st.error(err)
-                    else:
-                        st.success("Objective scores updated")
+                
+                # Store scored objectives separately
+                if err:
+                    st.error(f"Scoring failed: {err}")
+                    st.session_state.scored_objectives = None
+                else:
+                    st.session_state.scored_objectives = updated
+                    st.success("✅ Objective scores updated successfully!")
+                    st.rerun()
+        
+        # Display scored objectives in a separate table
+        if st.session_state.scored_objectives:
+            st.markdown("---")
+            st.subheader("📊 LLM-Scored Objectives")
+            st.caption("These scores were generated by the LLM based on the job description")
+            
+            scored_df = pd.DataFrame(st.session_state.scored_objectives)
+            scored_display = scored_df[["id", "title", "importance_score", "difficulty_score", "evidence_score"]]
+            
+            st.dataframe(
+                scored_display,
+                use_container_width=True,
+                column_config={
+                    "id": st.column_config.TextColumn("ID", width="small"),
+                    "title": st.column_config.TextColumn("Objective", width="large"),
+                    "importance_score": st.column_config.NumberColumn(
+                        "Importance (I)",
+                        help="How critical this skill is to the role (1-10)",
+                        width="small"
+                    ),
+                    "difficulty_score": st.column_config.NumberColumn(
+                        "Difficulty (D)",
+                        help="Expected skill level required (1-10)",
+                        width="small"
+                    ),
+                    "evidence_score": st.column_config.NumberColumn(
+                        "Evidence (E)",
+                        help="Candidate's initial evidence level (0-10)",
+                        width="small"
+                    ),
+                },
+                hide_index=True,
+            )
+            
+            col_use1, col_use2 = st.columns([1, 2])
+            with col_use1:
+                if st.button("✓ Use These Scores for Interview", type="primary"):
+                    st.session_state.job_objectives = st.session_state.scored_objectives
+                    st.success("Scores applied to objectives table!")
+                    st.rerun()
+            with col_use2:
+                st.info("💡 Click the button to apply these LLM-generated scores to your objectives")
 
     st.header("Step 2: Conduct interview")
 
