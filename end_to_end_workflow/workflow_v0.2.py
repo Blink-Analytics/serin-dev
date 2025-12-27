@@ -492,7 +492,6 @@ def main() -> None:
         edited_df = st.data_editor(
             df_display,
             num_rows="dynamic",
-            use_container_width=True,
             column_config={
                 "id": st.column_config.TextColumn("ID", width="small"),
                 "title": st.column_config.TextColumn("Objective", width="large"),
@@ -755,7 +754,7 @@ You are the "Serin" Adaptive Interview Engine. Your goal is to conduct a realist
                 else:
                     col_start, col_reset = st.columns(2)
                     with col_start:
-                        if st.button("Start Interview", type="primary", use_container_width=True):
+                        if st.button("Start Interview", type="primary"):
                             # Start interview and generate first question
                             st.session_state.interview["running"] = True
                             
@@ -774,9 +773,7 @@ You are the "Serin" Adaptive Interview Engine. Your goal is to conduct a realist
                                 sel_state = st.session_state.interview["state"][focus_id]
                                 sel_state["Dcurrent"] = _next_d_current(
                                     sel_obj, 
-                                    sel_state,
-                                    score_threshold_high=int(st.session_state.get("score_threshold_high", 8)),
-                                    score_threshold_low=int(st.session_state.get("score_threshold_low", -3))
+                                    sel_state
                                 )
                                 d_current = int(sel_state["Dcurrent"])
                                 
@@ -796,7 +793,7 @@ You are the "Serin" Adaptive Interview Engine. Your goal is to conduct a realist
                             
                             st.rerun()
                     with col_reset:
-                        if st.button("Reset Interview", use_container_width=True):
+                        if st.button("Reset Interview"):
                             st.session_state.interview = None
                             st.rerun()
     
@@ -888,9 +885,7 @@ You are the "Serin" Adaptive Interview Engine. Your goal is to conduct a realist
 
                 sel_state["Dcurrent"] = _next_d_current(
                     sel_obj, 
-                    sel_state,
-                    score_threshold_high=int(st.session_state.get("score_threshold_high", 8)),
-                    score_threshold_low=int(st.session_state.get("score_threshold_low", -3))
+                    sel_state
                 )
                 d_current = int(sel_state["Dcurrent"])
 
@@ -1074,9 +1069,7 @@ You are the "Serin" Adaptive Interview Engine. Your goal is to conduct a realist
                                     next_state = interview["state"][next_focus_id]
                                     next_state["Dcurrent"] = _next_d_current(
                                         next_obj, 
-                                        next_state,
-                                        score_threshold_high=int(st.session_state.get("score_threshold_high", 8)),
-                                        score_threshold_low=int(st.session_state.get("score_threshold_low", -3))
+                                        next_state
                                     )
                                     next_d = int(next_state["Dcurrent"])
                                     

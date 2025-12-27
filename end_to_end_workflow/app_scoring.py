@@ -244,15 +244,15 @@ def main() -> None:
                     {
                         "Q Diff ($d_q$)": l["d_q"],
                         "Score": int(l["score"]),
-                        "$\Delta C$": f"{0.025 * l['score']:.3f}",
+                        r"$\Delta C$": f"{0.025 * l['score']:.3f}",
                         "New $C$": f"{l['c_new']:.3f}",
                         "Norm($C$)": f"{l['norm_c']:.3f}",
                         "Weight $W$": f"{l['weight']:.3f}",
-                        "Term ($W \\times Norm(C)$)": f"**{l['val']:.3f}**",
+                        r"Term ($W \times Norm(C)$)": f"**{l['val']:.3f}**",
                     }
                 )
             st.table(rows)
-            st.caption("Weight $W = (d_q / (\\alpha + d_{max}))^\\beta$")
+            st.caption(r"Weight $W = (d_q / (\alpha + d_{max}))^\beta$")
 
 
 if __name__ == "__main__":
